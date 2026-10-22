@@ -1,0 +1,2 @@
+import Link from 'next/link'
+export default function ForbiddenPage() { return <main className="flex min-h-screen flex-col items-center justify-center gap-3 p-6 text-center"><p className="text-sm font-semibold text-destructive">403</p><h1 className="text-2xl font-semibold">Acesso negado</h1><p className="text-muted-foreground">Você não tem permissão para acessar esta área.</p><Link className="mt-3 text-sm font-medium text-primary" href="/dashboard">Voltar ao painel</Link></main> }
