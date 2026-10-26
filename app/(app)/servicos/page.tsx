@@ -13,13 +13,77 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
-import { useServices } from '@/hooks/use-services'
+import { Switch } from '@/components/ui/switch'
+import { useServices, useUpdateServices } from '@/hooks/use-services'
 import { formatCurrency } from '@/lib/format'
 import type { ApiService } from '@/types/api'
 
 interface ServicesListProps {
   onEdit: (service: ApiService) => void
   onDelete: (service: ApiService) => void
+}
+
+function ServiceItem({
+  service,
+  onEdit,
+  onDelete,
+}: {
+  service: ApiService
+  onEdit: (service: ApiService) => void
+  onDelete: (service: ApiService) => void
+}) {
+  // Um hook por item: cada linha controla o próprio "salvando" e o próprio erro
+  const updateService = useUpdateServices()
+
+  const handleToggle = (checked: boolean) => {
+    updateService.mutate({ id: service.id, payload: { active: checked } })
+  }
+
+  return (
+    <li className="rounded-[14px] border bg-card p-4">
+      <div className="flex items-center justify-between gap-4">
+        <div className={service.active ? '' : 'opacity-60'}>
+          <p className="font-medium">{service.name}</p>
+          <p className="text-sm text-muted-foreground">{service.durationMins} min</p>
+        </div>
+        <div className="flex items-center gap-3">
+          <p className={`font-semibold ${service.active ? '' : 'opacity-60'}`}>
+            {formatCurrency(service.price)}
+          </p>
+          <Switch
+            checked={service.active}
+            onCheckedChange={handleToggle}
+            disabled={updateService.isPending}
+            aria-label={`${service.active ? 'Desativar' : 'Ativar'} ${service.name}`}
+          />
+          <div className="flex gap-1">
+            <Button
+              variant="ghost"
+              size="icon"
+              aria-label={`Editar ${service.name}`}
+              onClick={() => onEdit(service)}
+            >
+              <Pencil />
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              aria-label={`Excluir ${service.name}`}
+              className="text-destructive hover:text-destructive"
+              onClick={() => onDelete(service)}
+            >
+              <Trash2 />
+            </Button>
+          </div>
+        </div>
+      </div>
+      {updateService.isError && (
+        <p className="mt-2 text-xs text-destructive">
+          Não foi possível alterar o status do serviço.
+        </p>
+      )}
+    </li>
+  )
 }
 
 function ServicesList({ onEdit, onDelete }: ServicesListProps) {
@@ -44,44 +108,7 @@ function ServicesList({ onEdit, onDelete }: ServicesListProps) {
   return (
     <ul className="grid gap-3">
       {services.map((service) => (
-        <li
-          key={service.id}
-          className="flex items-center justify-between gap-4 rounded-[14px] border bg-card p-4"
-        >
-          <div>
-            <p className="font-medium">{service.name}</p>
-            <p className="text-sm text-muted-foreground">{service.durationMins} min</p>
-          </div>
-          <div className="flex items-center gap-3">
-            <div className="text-right">
-              <p className="font-semibold">{formatCurrency(service.price)}</p>
-              {!service.active && (
-                <span className="rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground">
-                  Inativo
-                </span>
-              )}
-            </div>
-            <div className="flex gap-1">
-              <Button
-                variant="ghost"
-                size="icon"
-                aria-label={`Editar ${service.name}`}
-                onClick={() => onEdit(service)}
-              >
-                <Pencil />
-              </Button>
-              <Button
-                variant="ghost"
-                size="icon"
-                aria-label={`Excluir ${service.name}`}
-                className="text-destructive hover:text-destructive"
-                onClick={() => onDelete(service)}
-              >
-                <Trash2 />
-              </Button>
-            </div>
-          </div>
-        </li>
+        <ServiceItem key={service.id} service={service} onEdit={onEdit} onDelete={onDelete} />
       ))}
     </ul>
   )
