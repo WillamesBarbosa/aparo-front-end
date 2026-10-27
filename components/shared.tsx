@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { Bell, CalendarDays, ChevronDown, CircleHelp, Clock3, FileBarChart, LayoutDashboard, Menu, MoreHorizontal, Scissors, Settings, Users, UserRound, X } from 'lucide-react'
+import { Bell, CalendarDays, ChevronDown, CircleHelp, Clock3, FileBarChart, LayoutDashboard, Menu, MoreHorizontal, Scissors, Settings, Users, UserRound, X, CalendarClock } from 'lucide-react'
 import { useState } from 'react'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
@@ -13,6 +13,7 @@ const navItems = [
   { href: '/agendamentos', label: 'Agendamentos', icon: Clock3 },
   { href: '/clientes', label: 'Clientes', icon: Users },
   { href: '/servicos', label: 'Serviços', icon: Scissors },
+  { href: '/horarios', label: 'Horários', icon: CalendarClock },
   { href: '/profissionais', label: 'Profissionais', icon: UserRound },
   { href: '/relatorios', label: 'Relatórios', icon: FileBarChart },
 ]
