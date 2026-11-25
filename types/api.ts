@@ -71,12 +71,33 @@ export interface ApiSchedule {
   active: boolean
 }
 
+export interface ApiCustomer {
+  id: string
+  name: string
+  phone: string
+}
+
 export interface ApiAppointment {
   id: string
   barbershopId: string
   serviceId: string
-  customerName: string
-  customerPhone: string
+  customerId: string
+  // ISO em UTC, mas o backend trata o horário UTC como horário local da barbearia
   date: string
   status: AppointmentStatus
+  service: ApiService
+  customer: ApiCustomer
+}
+
+export type AvailabilityReason = 'no_schedule' | 'fully_booked' | 'past_date'
+
+// Resposta de GET /appointments/available (um dia) e de /available/week (array desses)
+export interface ApiAvailability {
+  date: string
+  // Ausente quando a barbearia não tem horário configurado no dia
+  dayOfWeek?: DayOfWeek
+  available: boolean
+  reason: AvailabilityReason | null
+  // Horários livres no formato "HH:mm"
+  slots: string[]
 }
