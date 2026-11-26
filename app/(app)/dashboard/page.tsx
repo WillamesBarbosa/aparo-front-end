@@ -1,10 +1,119 @@
-import { ArrowUpRight, CalendarDays, ChevronRight, Clock3, Plus, TrendingUp, Users } from 'lucide-react'
+'use client'
+
 import Link from 'next/link'
+import { useState } from 'react'
+import { ArrowUpRight, CalendarDays, CircleCheck, CircleDollarSign, Clock3 } from 'lucide-react'
+
+import { AppointmentCard } from '@/components/appointment-card'
+import { CancelAppointmentDialog } from '@/components/cancel-appointments-dialog'
+import { EmptyState, LoadingSkeleton, PageHeader } from '@/components/shared'
 import { Button } from '@/components/ui/button'
-import { PageHeader, StatusBadge } from '@/components/shared'
-import { demoAppointments, demoBarbers, demoClients, demoServices } from '@/services/mock-data'
+import { useAppointmentsByDay } from '@/hooks/use-appointments'
+import { useBarbershop } from '@/hooks/use-barbershop'
+import { formatDayLong, todayKey } from '@/lib/dates'
+import { formatCurrency } from '@/lib/format'
+import type { ApiAppointment } from '@/types/api'
 
-const stats = [{ label: 'Agendamentos hoje', value: '18', change: '+12,5%', icon: CalendarDays }, { label: 'Faturamento no mês', value: 'R$ 8.420', change: '+8,2%', icon: TrendingUp }, { label: 'Clientes ativos', value: '284', change: '+18 novos', icon: Users }, { label: 'Taxa de ocupação', value: '78%', change: '+4,6%', icon: Clock3 }]
-const initials = (name: string) => name.split(' ').map((part) => part[0]).slice(0, 2).join('')
+function greeting() {
+  const hour = new Date().getHours()
+  if (hour < 12) return 'Bom dia'
+  if (hour < 18) return 'Boa tarde'
+  return 'Boa noite'
+}
 
-export default function DashboardPage() { return <div className="mx-auto flex max-w-7xl flex-col gap-8"><PageHeader title="Bom dia, Will" description="Aqui está o resumo da sua barbearia hoje." action={<Button render={<Link href="/agendamentos" />} nativeButton={false}><Plus data-icon="inline-start" />Novo agendamento</Button>} /><section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">{stats.map(({ label, value, change, icon: Icon }) => <div key={label} className="rounded-xl border bg-card p-5 shadow-sm"><div className="flex items-center justify-between"><span className="text-sm text-muted-foreground">{label}</span><span className="flex size-9 items-center justify-center rounded-lg bg-primary/10 text-primary"><Icon /></span></div><div className="mt-5 flex items-end justify-between"><strong className="text-2xl font-semibold tracking-tight">{value}</strong><span className="text-xs font-medium text-green-700">{change}</span></div></div>)}</section><div className="grid gap-6 xl:grid-cols-[1.4fr_1fr]"><section className="rounded-xl border bg-card shadow-sm"><div className="flex items-center justify-between border-b p-5"><div><h3 className="font-semibold">Agenda de hoje</h3><p className="mt-1 text-sm text-muted-foreground">Quarta-feira, 18 de junho</p></div><Button render={<Link href="/agenda" />} nativeButton={false} variant="ghost" size="sm">Ver agenda <ArrowUpRight data-icon="inline-end" /></Button></div><div className="divide-y">{demoAppointments.map((appointment) => { const client = demoClients.find((item) => item.id === appointment.clientId)!; const barber = demoBarbers.find((item) => item.id === appointment.barberId)!; const service = demoServices.find((item) => item.id === appointment.serviceId)!; return <div className="flex items-center gap-4 p-4 sm:p-5" key={appointment.id}><span className="w-12 text-sm font-semibold">{appointment.startsAt}</span><span className="flex size-9 items-center justify-center rounded-full bg-muted text-xs font-semibold">{initials(client.name)}</span><div className="min-w-0 flex-1"><p className="truncate text-sm font-medium">{client.name}</p><p className="truncate text-xs text-muted-foreground">{service.name} · {barber.name}</p></div><StatusBadge status={appointment.status} /></div> })}</div></section><section className="rounded-xl border bg-card shadow-sm"><div className="flex items-center justify-between border-b p-5"><div><h3 className="font-semibold">Clientes recentes</h3><p className="mt-1 text-sm text-muted-foreground">Os últimos clientes atendidos</p></div><Link href="/clientes" className="text-sm font-medium text-primary">Ver todos</Link></div><div className="divide-y">{demoClients.map((client) => <div className="flex items-center gap-3 p-4" key={client.id}><span className="flex size-9 items-center justify-center rounded-full bg-primary/10 text-xs font-semibold text-primary">{initials(client.name)}</span><div className="min-w-0 flex-1"><p className="truncate text-sm font-medium">{client.name}</p><p className="text-xs text-muted-foreground">{client.visits} visitas · {client.lastVisit}</p></div><ChevronRight className="size-4 text-muted-foreground" /></div>)}</div></section></div></div> }
+export default function DashboardPage() {
+  const today = todayKey()
+  const { data: appointments, isPending, isError, error } = useAppointmentsByDay(today)
+  const { data: barbershop } = useBarbershop()
+
+  const [cancelOpen, setCancelOpen] = useState(false)
+  const [cancelling, setCancelling] = useState<ApiAppointment | null>(null)
+
+  const openCancel = (appointment: ApiAppointment) => {
+    setCancelling(appointment)
+    setCancelOpen(true)
+  }
+
+  // Os números do dia saem da própria lista de hoje, sem chamada extra.
+  // Cancelados não contam como agendamento nem como receita.
+  const list = appointments ?? []
+  const active = list.filter((appointment) => appointment.status !== 'CANCELLED')
+  const pending = active.filter((appointment) => appointment.status === 'PENDING').length
+  const confirmed = active.filter((appointment) => appointment.status === 'CONFIRMED').length
+  const revenue = active.reduce((total, appointment) => total + Number(appointment.service.price), 0)
+
+  const stats = [
+    { label: 'Agendamentos hoje', value: String(active.length), icon: CalendarDays },
+    { label: 'Aguardando confirmação', value: String(pending), icon: Clock3 },
+    { label: 'Confirmados', value: String(confirmed), icon: CircleCheck },
+    { label: 'Receita prevista', value: formatCurrency(revenue), icon: CircleDollarSign },
+  ]
+
+  return (
+    <div className="mx-auto flex max-w-7xl flex-col gap-8">
+      <PageHeader
+        title={greeting()}
+        description={
+          barbershop ? `Aqui está o resumo de hoje na ${barbershop.name}.` : 'Aqui está o resumo de hoje.'
+        }
+      />
+
+      <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        {stats.map(({ label, value, icon: Icon }) => (
+          <div key={label} className="rounded-xl border bg-card p-5 shadow-sm">
+            <div className="flex items-center justify-between">
+              <span className="text-sm text-muted-foreground">{label}</span>
+              <span className="flex size-9 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                <Icon />
+              </span>
+            </div>
+            <strong className="mt-5 block text-2xl font-semibold tracking-tight">
+              {isPending ? '—' : value}
+            </strong>
+          </div>
+        ))}
+      </section>
+
+      <section className="grid gap-4">
+        <div className="flex items-center justify-between">
+          <div>
+            <h3 className="font-semibold">Agenda de hoje</h3>
+            <p className="mt-1 text-sm capitalize text-muted-foreground">{formatDayLong(today)}</p>
+          </div>
+          <Button render={<Link href="/agenda" />} nativeButton={false} variant="ghost" size="sm">
+            Ver agenda <ArrowUpRight data-icon="inline-end" />
+          </Button>
+        </div>
+
+        {isPending && <LoadingSkeleton />}
+
+        {isError && (
+          <p className="rounded-lg bg-destructive/10 px-3 py-2 text-sm text-destructive">
+            {error.message}
+          </p>
+        )}
+
+        {appointments && appointments.length === 0 && (
+          <EmptyState
+            title="Nenhum agendamento hoje"
+            description="Quando um cliente agendar, ele aparece aqui."
+          />
+        )}
+
+        {list.length > 0 && (
+          <ul className="grid gap-3">
+            {list.map((appointment) => (
+              <AppointmentCard key={appointment.id} appointment={appointment} onCancel={openCancel} />
+            ))}
+          </ul>
+        )}
+      </section>
+
+      <CancelAppointmentDialog
+        appointment={cancelling}
+        open={cancelOpen}
+        onOpenChange={setCancelOpen}
+      />
+    </div>
+  )
+}
