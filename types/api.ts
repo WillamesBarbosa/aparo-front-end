@@ -101,3 +101,23 @@ export interface ApiAvailability {
   // Horários livres no formato "HH:mm"
   slots: string[]
 }
+
+
+// ---- Página pública de agendamento ----
+
+// A rota pública só devolve o necessário para o cliente escolher
+export type ApiPublicService = Pick<ApiService, 'id' | 'name' | 'price' | 'durationMins'>
+
+// Resposta de GET /services/:barbershopId (somente serviços ativos)
+export interface ApiPublicBarbershop {
+  barbershop: { name: string }
+  services: ApiPublicService[]
+}
+
+export interface PublicAppointmentRequest {
+  barbershopId: string
+  serviceId: string
+  customerName: string
+  customerPhone: string
+  date: string
+}
