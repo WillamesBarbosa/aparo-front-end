@@ -70,8 +70,7 @@ export function AppSidebar() {
   const pathname = usePathname()
 
   return (
-    <aside className="hidden w-64 shrink-0 flex-col bg-sidebar px-4 py-5 text-sidebar-foreground lg:flex">
-      <Logo />
+<aside className="sticky top-0 hidden h-screen w-64 shrink-0 flex-col overflow-y-auto bg-sidebar px-4 py-5 text-sidebar-foreground lg:flex">      <Logo />
       <div className="mt-10 flex flex-1 flex-col gap-1">
         <p className="mb-3 px-3 text-[11px] font-semibold uppercase tracking-widest text-sidebar-foreground/45">
           Menu principal
