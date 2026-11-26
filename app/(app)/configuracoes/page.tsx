@@ -9,6 +9,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { useBarbershop, useUpdateBarbershop } from '@/hooks/use-barbershop'
 import { ApiError } from '@/lib/api-client'
+import { BookingLinkCard } from '@/components/booking-link-card'
 import type { ApiBarbershop } from '@/types/api'
 
 const barbershopSchema = z.object({
@@ -100,5 +101,9 @@ export default function ConfiguracoesPage() {
     )
   }
 
-  return <BarbershopForm barbershop={barbershop} />
-}
+return (
+  <div className="grid gap-6">
+    <BookingLinkCard barbershopId={barbershop.id} />
+    <BarbershopForm barbershop={barbershop} />
+  </div>
+)}
